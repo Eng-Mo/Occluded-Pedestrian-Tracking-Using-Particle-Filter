@@ -9,7 +9,7 @@ using namespace cv;
 
 class Tracker
 {
-    const static int part_n=500;
+    const static int part_n=200;
     particle objectparticles [part_n];
     bool lostTrack=0;
     ParticleF pf_obj;
@@ -24,7 +24,7 @@ public:
 
     void initTracking(MatND hist_object, Rect rect, float disp_noisex,float disp_noisey, double scale_noise);
     void updateTracking(Mat& c_frame,const Mat& patch,MatND& ref_hist);
-    void drawParticles(Mat& c_frame);
+    void drawParticles(Mat& c_frame, Scalar s);
     Rect bestRect();
     void overlappedRect();
     void generateHeatMap();

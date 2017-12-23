@@ -1,4 +1,4 @@
-
+﻿
 #include <QCoreApplication>
 
 #include<iostream>
@@ -17,10 +17,10 @@ using namespace cv;
 
 
 
-float sdx=1;
-float sdy=1;
-double scale_sd = .1 ;
-int partn=1000;
+float sdx=5;
+float sdy=5;
+double scale_sd = .005 ;
+int partn=200;
 
 
 Mat histEq(Mat &image){
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
     CalcFeatures feat;
 
 
-    VideoCapture cap("../Downloads/ps6/input/pres_debate.avi");
+    VideoCapture cap("../Downloads/ps6/input/pedestrians.avi");
 
     if (!cap.isOpened())
         {
@@ -63,10 +63,10 @@ int main(int argc, char *argv[])
 
 
     cap >> frame;
-    int x=320;
-    int y=175;
-    int w=103;
-    int h=129;
+    int x=211;
+    int y=36;
+    int w=100;
+    int h=293;
     Rect roi(x,y,w,h);
 
     MatND intial_hist;
@@ -117,8 +117,10 @@ int main(int argc, char *argv[])
         if (start_track==0)
         {
             original_patch= frame(roi).clone();
+
             lbp_original=feat.oLBP(original_patch);
             imshow("LBP", lbp_original);
+            imshow("original", original_patch);
             waitKey(0);
             intial_hist=feat.getHistogram(original_patch, lbp_original);
             obj.initTracking(intial_hist,roi,sdx, sdy,scale_sd);
@@ -127,26 +129,21 @@ int main(int argc, char *argv[])
             continue;
 
         }
+        Scalar s1= Scalar(255,0,0);
+        Scalar s2= Scalar(0,255,0);
+        Scalar s3= Scalar(0,0,255);
 
 
         Mat dImage=frame;
+//        obj.drawParticles(dImage,s1);
         obj.updateTracking(frame,original_patch,intial_hist);
-        obj.drawParticles(dImage);
+//        obj.drawParticles(dImage,s2);
 
 
 
-//        for (int p=0;p<partn;p++)
-//        {
-//            circle(frame,Point(partArr[p].x, partArr[p].y),2,Scalar(0,0,255),2,8,0);
-//            partArr[p]=best_particle;
 
-//            cout<<"Particle weight= "<<partArr[p].w<<"\n";
-//        }
         best_rect=obj.bestRect();
-//       // if (obj.actual_p.w<.05){
-//            original_patch=frame(obj.actual_p.p_rect);
-//            intial_hist=feat.getHistogram(original_patch, lbp_original);
-//       // }
+
         rectangle(frame,best_rect,Scalar(0,0,255),2,5,0);
 //        imshow("result", frame);
 //        waitKey(0);

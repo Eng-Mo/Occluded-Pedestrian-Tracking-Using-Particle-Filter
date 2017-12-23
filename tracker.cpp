@@ -12,62 +12,61 @@ void Tracker::initTracking(MatND hist_object, Rect rect, float disp_noisex,float
 }
 
 void Tracker::updateTracking(Mat& c_frame,const Mat& patch,MatND& ref_hist){
+    Scalar s1=Scalar(255,0,0);
+    Scalar s2= Scalar(0,255,0);
+    Scalar s3=Scalar(0,0,255);
+    drawParticles(c_frame,s1);
     pf_obj.updateParticles(c_frame,patch,ref_hist, objectparticles,part_n);
+    drawParticles(c_frame,s2);
     overlappedRect();
 //    generateHeatMap();
+    Rect min;
+    Rect max;
+    double minw=100;
+    double maxw=0;
+    for(int p=0; p<part_n;p++){
+        if (objectparticles[p].w<minw){
+            min=objectparticles[p].p_rect;
+            minw=objectparticles[p].w;
+        }
+        if(objectparticles[p].w>maxw){
+            max= objectparticles[p].p_rect;
+            maxw= objectparticles[p].w;
+        }
+    }
+    cout<<"minimum W= "<<minw<<endl;
+    cout<<"maximum W= "<<maxw<<endl;
+//    imshow("max",c_frame(max));
+//    imshow("min",c_frame(min));
+//    waitKey(0);
 
     best_p= pf_obj.resampleParticles(objectparticles,part_n);
 
-    for (int p=0;p<part_n;p++)
-    {
+//    drawParticles(c_frame,s3);
 
-        cout<<"Particle weight= "<<objectparticles[p].w<<"\n";
-    }
-    cout<<"best weight= "<<objectparticles[0].w<<"\n";
-    if (best_p.w<12){
+
+
+    if (best_p.w>.0000001){
         actual_p=best_p;
-    }
-    else {
-        double difx, diffy;
-        double dist, temdist;
-        double mindist=0;
-        difx=actual_p.vx-objectparticles[0].vx;
-        diffy= actual_p.vy- objectparticles[0].vy;
-        mindist=pow(difx,2)+pow(diffy,2);
-        for (int p=0;p<part_n;p++)
-        {
-
-            difx=actual_p.vx-objectparticles[p].vx;
-            diffy= actual_p.vy- objectparticles[p].vy;
-            dist=pow(difx,2)+pow(diffy,2);
-            if (mindist>dist)
-            {
-
-                actual_p.x=actual_p.x+objectparticles[p].vx;
-                actual_p.y=actual_p.y+objectparticles[p].vy;
-                mindist=dist;
-
-                actual_p.p_rect.x= actual_p.x-(actual_p.width/2);
-                actual_p.p_rect.y= actual_p.y-(actual_p.hieght/2);
-
-            }
+        for (int p=0; p<part_n;p++){
             objectparticles[p]=actual_p;
 
+
         }
+        circle(c_frame,Point(actual_p.x, actual_p.y),5,s3,2,8,0);
 
     }
-
 
 
 }
 
-void Tracker::drawParticles(Mat& c_frame){
+void Tracker::drawParticles(Mat& c_frame, Scalar s){
     for (int i=0;i<part_n ;i++)
     {
-        circle(c_frame,Point(objectparticles[i].x, objectparticles[i].y),1,Scalar(0,0,255),1,8,0);
+        circle(c_frame,Point(objectparticles[i].x, objectparticles[i].y),1,s,1,1,0);
 
     }
-    circle(c_frame,Point(actual_p.x, actual_p.y),5,Scalar(255,0,0),2,8,0);
+//    circle(c_frame,Point(actual_p.x, actual_p.y),5,Scalar(255,0,0),2,8,0);
 //    imshow("particles", c_frame);
 //    waitKey(0);
 }

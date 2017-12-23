@@ -32,16 +32,16 @@ void ParticleF::init_particles(particle* part_reg,MatND& hist_patch,Rect r, int 
     for (int i=0;i<p_n;i++)
     {
 
-        part.x= part.xp= part.xo= cx;
-        part.y= part.yp= part.yo= cy;
+        part.x=  cx;
+        part.y=  cy;
         part.vx=0;
         part.vy=0;
         part.width=r.width;
         part.hieght=r.height;
-        part.w=0;
+        part.w=1.0;
         part.scale= part.scalep= 1.0;
         part.p_rect=r;
-        part.particle_hist= hist_patch;
+//        part.particle_hist= hist_patch;
         part_reg[i]=part;
 
 
@@ -60,75 +60,36 @@ void ParticleF::updateParticles(Mat& c_frame,const Mat& patch,MatND& ref_hist,pa
     RNG rand;
     int frame_w=c_frame.cols;
     int frame_h=c_frame.rows;
-//    gsl_rng* rng;
-    gsl_rng_env_setup();
-    rng = gsl_rng_alloc(gsl_rng_mt19937);
-    gsl_rng_set(rng, time(NULL));
+    default_random_engine gen;
+    normal_distribution<double> dist_x(0, sd);
+    normal_distribution<double> dist_y(0,1);
+    normal_distribution<double> d_scale(0, scale_sd);
+
 
 
      ofstream output,output2;
      output.open("output_result.txt");
      output2.open("output_result2.txt");
-     if (!output.is_open()||!output2.is_open())
-             {
-           cout << "Unable to open file for writing";
-           return;
 
-     }
-     else{
-//         std::default_random_engine de(time(0)); //seed
-//         std::normal_distribution<double> nd(0, sdx); //mean followed by stdiv
-////         int rarrary [101]; // [0, 100]
-//         for(int i = 0; i < p_n; ++i){
-//             output<<nd(de)<<endl;
-
-//         }
-
-
-//    for (int i=0;i<p_n;i++){
-//        double d= gsl_ran_gaussian(rng,sd);
-//        cout<<"random ="<<d<<endl;
-//        output<<d<<endl;
-//    }
-//    output.close();
-     }
 
 
 
 
     for (int p=0; p<p_n; p++)
     {
-//        int nx=2*(part_reg[p].x-part_reg[p].xp)+(part_reg[p].xp-part_reg[p].xo)+gsl_ran_gaussian(rng,sd)+part_reg[p].xo;
-//        int ny=2*(part_reg[p].y-part_reg[p].yp)+(part_reg[p].yp-part_reg[p].yo)+gsl_ran_gaussian(rng,sd)+part_reg[p].yo;
-//        cout<<"random= "<<gsl_ran_gaussian(rng,sd)<<endl;
-
-//        nx=(part_reg[p].x+part_reg[p].xp+part_reg[p].xo)/3+part_reg[p].vx;
-//        ny= (part_reg[p].y+part_reg[p].yp+part_reg[p].yo)/3+part_reg[p].vy;
-        double d= gsl_ran_gaussian(rng,sd);
-        double d2= gsl_ran_gaussian(rng, scale_sd);
-        output<<d<<endl;
-        output2<<d2<<endl;
-        part_reg[p].vx=part_reg[p].vx+d;
-        part_reg[p].vy=part_reg[p].vy+d;
-        nx=part_reg[p].x+part_reg[p].vx;
-        ny= part_reg[p].y+part_reg[p].vy;
-
-//        int ny=part_reg[p].y+r.gaussian(sd);
-//        cout<<"nx part"<<nx<<"\n";
-//        cout<<"ny part"<<ny<<"\n";
-
-
+        int nx=part_reg[p].x+dist_x(gen);
+        int ny=part_reg[p].y+dist_y(gen);
         nx=max(5,min(nx,frame_w-5));
 
         ny=max(5,min(ny,frame_h-5));
         cout<<"nx part"<<nx<<"\n";
         cout<<"ny part"<<ny<<"\n";
 
-        nscale=d2+part_reg[p].scale;
+        nscale=d_scale(gen)+part_reg[p].scale;
         nscale=abs(nscale);
-        nscale=min(max(double(nscale),.00006),(double)3);
+        nscale=min(max(double(nscale),scale_sd),(double)3);
         cout<<"new scale part"<<nscale<<"\n";
-//        part_reg[p].scale =nscale;
+        part_reg[p].scale =nscale;
         cout<<"new scale ="<<part_reg[p].scale<<endl;
 
         part_reg[p].scale = ( (nx + (nscale*part_reg[p].width)/2) < (frame_w-1) && (nx - (nscale*part_reg[p].width)/2) > 0 )?nscale:0;
@@ -142,19 +103,10 @@ void ParticleF::updateParticles(Mat& c_frame,const Mat& patch,MatND& ref_hist,pa
 
 
             totalW+=part_reg[p].w;
-//            continue;
+            continue;
         }
-//        part_reg[p].scale=1.0;
-//        part_reg[p].xo=part_reg[p].xp;
-//        part_reg[p].yo=part_reg[p].yp;
-//        part_reg[p].xp=part_reg[p].x;
-//        part_reg[p].yp=part_reg[p].y;
-        part_reg[p].xo=part_reg[p].xp;
-        part_reg[p].xp=part_reg[p].x;
-
+        part_reg[p].scale=nscale;
         part_reg[p].x=nx;
-        part_reg[p].yo=part_reg[p].yp;
-        part_reg[p].yp=part_reg[p].y;
         part_reg[p].y=ny;
 
         cout<<"part w= "<<part_reg[p].width<<endl;
@@ -199,27 +151,22 @@ void ParticleF::updateParticles(Mat& c_frame,const Mat& patch,MatND& ref_hist,pa
         Mat Particle_lbp;
         Particle_lbp= CalcFeatures::oLBP(particle_patch);
         part_reg[p].particle_hist= CalcFeatures::getHistogram(particle_patch, Particle_lbp);
+        part_reg[p].w*= compareHist(ref_hist,part_reg[p].particle_hist,CV_COMP_CHISQR);
+        cout<<"weight= "<<part_reg[p].w<<endl;
+        part_reg[p].w= exp(-part_reg[p].w)/(2*4);
+        cout<<"weight normed= "<<part_reg[p].w<<endl;
 
-
-
-//        double mse= getMSE(particle_patch,patch);
-//        part_reg[p].w=mse;
-        part_reg[p].w= compareHist(ref_hist,part_reg[p].particle_hist,CV_COMP_CHISQR);
-//        cout<<"wieght ="<<p<<"= "<<part_reg[p].w<<"\n";
-//        part_reg[p].w=(float) 120/exp( part_reg[p].w);
-        Scalar color(255, 100, 255 );
         totalW+=part_reg[p].w;
         part_reg[p].scale=1.0;
 
 
-//        rectangle(c_frame,part_reg[p].p_rect,color,2,5,0);
+
     }
-//    imshow("test", c_frame);
-//    waitKey(0);
+
 
     for(int p=0; p < p_n; p++) {
-        cout<<"wieght 1= "<<part_reg[p].w<<"\n";
-//            part_reg[p].w = part_reg[p].w/totalW;
+
+            part_reg[p].w = part_reg[p].w/totalW;
              cout<<"wieght 2= "<<part_reg[p].w<<"\n";
 
         }
@@ -238,55 +185,48 @@ bool ParticleF::comp(const particle& sP, const particle& eP)
 particle ParticleF::resampleParticles(particle* pArr,int partn) {
 
     particle npArr[partn];
-    int m=0;
-    int np=partn;
-    particle part_b;
-    sort(pArr,pArr+partn,this->comp);
-    for(int p=0; p < partn; p++) {
-        cout<<"wieght1= "<<pArr[p].w<<"\n";
+    // TODO: Resample particles with replacement with probability proportional to their weight.
+    // NOTE: You may find std::discrete_distribution helpful here.
+    //   http://en.cppreference.com/w/cpp/numeric/random/discrete_distribution
+//	cout<<"start resample"<<endl;
+    vector<double> weight_vector;
+    vector<particle> temp_particles;
+    for (int p=0; p<partn;p++){
+        weight_vector.push_back(pArr[p].w);
+    }
+    default_random_engine gen;
+    discrete_distribution<int> d(weight_vector.begin(),weight_vector.end());
 
-        }
-    part_b=pArr[0];
+//    int index= d(gen);
 
-    for(int p=0; p < partn; p++) {
-        np=partn*.3;
-        for(int j=0;j<np; j++)
-        {
-        npArr[m] = pArr[p];
-        m++;
-//        npArr[m++] = pArr[p];
-        if (m >= partn)
-        {
-             break;
-        }
-        }
-        if (m == partn)
-        {
-             break;
-        }
+    double beta=0.0;
 
-
-   }
-    while (m<partn){
-        npArr[m] = pArr[0];
-        m++;
-
+    double max_w= *max_element(weight_vector.begin(),weight_vector.end());
+//	cout<<"end max w="<<max_w<<endl;
+    uniform_real_distribution<double> unifor_v(0, max_w);
+    for (int p=0; p< partn;p++){
+        particle prtc=pArr[d(gen)];
+        temp_particles.push_back(prtc);
     }
 
+    double we=0;
+    particle best_particle;
 
-    for(int p=0;p<partn;p++) {
-        pArr[p]=npArr[p];
-//        cout<<"sampled x= "<< npArr[p].w<<"\n";
-//        cout<<"sampled y= "<< pArr[p].w<<"\n";
+    for (int p=0; p<partn;p++){
+        pArr[p]=temp_particles[p];
+        if (pArr[p].w>we)
+        {
+            best_particle=pArr[p];
+            we =pArr[p].w;
+
+        }
     }
 
-    for (int p=0; p<partn; p++)
-    {
-        cout<<"sampled weight= "<<pArr[p].w<<endl;
-    }
+    cout<<"best wieght = "<<best_particle.w<<"\n";
+    cout<<"max wieght1= "<<max_w<<"\n";
 
-//    pArr=npArr;
-    return part_b;
+
+    return best_particle;
 }
 
 

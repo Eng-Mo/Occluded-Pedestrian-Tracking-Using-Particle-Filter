@@ -51,12 +51,15 @@ MatND CalcFeatures::getHistogram(const Mat &image, const Mat &lbp_image)
 {
 
     Mat hsvImg;
-//    cvtColor(image,hsvImg,CV_BGR2HSV);
+    cvtColor(image,hsvImg,CV_BGR2HSV);
+//    imshow("HSV",hsvImg );
+//    waitKey(0);
 
-    int bbins = 8, gbins = 8,rbins= 8, lbins=64;
+
+    int bbins = 64, gbins = 64,rbins= 64, lbins=128;
     int histSize[] = {bbins,gbins, rbins, lbins};
     // hue varies from 0 to 179, see cvtColor
-    float branges[] = { 0, 255 };
+    float branges[] = { 0, 180 };
     // saturation varies from 0 (black-gray-white) to
     // 255 (pure spectrum color)
     float granges[] = { 0, 255 };
@@ -64,7 +67,7 @@ MatND CalcFeatures::getHistogram(const Mat &image, const Mat &lbp_image)
     float lranges[] ={0, 255};
     const float* ranges[] = { branges,granges,rranges, lranges };
     MatND hist;
-    Mat srcs[]={image, lbp_image};
+    Mat srcs[]={hsvImg, lbp_image};
     // we compute the histogram from the 0-th and 1-st channels
     int channels[] = {0, 1, 2, 3};
     calcHist( srcs, sizeof(srcs), channels, Mat(), // do not use mask
